@@ -1,0 +1,5 @@
+{
+  "name": "ChickenManager Pro",
+  "description": "A comprehensive poultry farm management system tracking income, expenses, and profitability with AI-powered insights. Supports Google Apps Script backend integration.",
+  "requestFramePermissions": []
+}
