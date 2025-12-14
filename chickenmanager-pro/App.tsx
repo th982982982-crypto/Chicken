@@ -163,6 +163,25 @@ const App: React.FC = () => {
       }
   };
 
+  // Close Ledger Handler
+  const handleCloseLedger = async (batchName: string) => {
+      try {
+          const result = await api.closeLedger(batchName);
+          if (result.status === 'success') {
+              alert(result.message || 'Kết sổ thành công! Dữ liệu đã được lưu trữ.');
+              // Clear current view
+              setTransactions([]);
+              // Optionally reload from cloud to ensure sync state
+              loadData();
+          } else {
+              alert('Lỗi: ' + result.message);
+          }
+      } catch (error) {
+          console.error(error);
+          alert('Lỗi kết nối khi kết sổ.');
+      }
+  };
+
   if (isLoading && !user) {
       return (
           <div className="min-h-screen flex items-center justify-center bg-slate-100 flex-col gap-4">
@@ -182,7 +201,8 @@ const App: React.FC = () => {
         currentUser={user} 
         currentView={currentView} 
         setView={setCurrentView} 
-        onLogout={handleLogout} 
+        onLogout={handleLogout}
+        onCloseLedger={handleCloseLedger}
       />
 
       <main className="flex-1 ml-64 p-8">
