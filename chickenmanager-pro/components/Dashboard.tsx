@@ -54,7 +54,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
       <h2 className="text-2xl font-bold text-slate-800">Tổng quan nông trại</h2>
       
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
             <div>
                 <p className="text-sm text-slate-500 font-medium">Tổng thu</p>
@@ -89,14 +89,14 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
       </div>
 
       {/* Chart */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+      <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100">
         <h3 className="text-lg font-semibold mb-6">Biểu đồ dòng tiền</h3>
-        <div className="h-80 w-full">
+        <div className="h-64 md:h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <BarChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" />
-                    <YAxis tickFormatter={(val) => `${val / 1000000}M`} />
+                    <XAxis dataKey="name" tick={{fontSize: 12}} />
+                    <YAxis tickFormatter={(val) => `${val / 1000000}M`} tick={{fontSize: 12}} />
                     <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                     <Bar dataKey="income" name="Thu" fill="#10b981" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="expense" name="Chi" fill="#f43f5e" radius={[4, 4, 0, 0]} />

@@ -8,9 +8,19 @@ interface SidebarProps {
   setView: (view: string) => void;
   onLogout: () => void;
   onCloseLedger: (batchName: string) => Promise<void>;
+  isMobileOpen?: boolean;
+  setIsMobileOpen?: (open: boolean) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentUser, currentView, setView, onLogout, onCloseLedger }) => {
+const Sidebar: React.FC<SidebarProps> = ({ 
+    currentUser, 
+    currentView, 
+    setView, 
+    onLogout, 
+    onCloseLedger,
+    isMobileOpen = false,
+    setIsMobileOpen
+}) => {
   const [showModal, setShowModal] = useState(false);
   const [batchName, setBatchName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,14 +50,39 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, currentView, setView, on
       setBatchName('');
   };
 
+  // Sidebar CSS classes for responsiveness
+  const sidebarClasses = `
+    bg-slate-900 text-white flex flex-col h-screen 
+    fixed top-0 left-0 z-50 
+    w-64 transition-transform duration-300 ease-in-out
+    ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+  `;
+
   return (
     <>
-    <div className="w-64 bg-slate-900 text-white flex flex-col h-screen fixed left-0 top-0 z-50">
-      <div className="p-6 border-b border-slate-700">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-           🐔 Gà Pro
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">Quản lý trại gà</p>
+    {/* Mobile Overlay */}
+    {isMobileOpen && (
+        <div 
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
+        ></div>
+    )}
+
+    <div className={sidebarClasses}>
+      <div className="p-6 border-b border-slate-700 flex justify-between items-center">
+        <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+            🐔 Gà Pro
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">Quản lý trại gà</p>
+        </div>
+        {/* Mobile Close Button */}
+        <button 
+            className="md:hidden text-slate-400 hover:text-white"
+            onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
+        >
+            <X size={24} />
+        </button>
       </div>
 
       <div className="flex-1 py-4">

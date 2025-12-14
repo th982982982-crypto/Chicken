@@ -14,21 +14,20 @@ import {
     saveLocalCategory,
     api
 } from './services/storageService';
-import { Loader2, Cloud, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { Loader2, Cloud, ArrowDownCircle, ArrowUpCircle, Menu } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState('dashboard');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [userList, setUserList] = useState<User[]>([]); // List of all users for login/management
+  const [userList, setUserList] = useState<User[]>([]); 
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // State for Income/Expense Tab
   const [activeTab, setActiveTab] = useState<TransactionType>(TransactionType.EXPENSE);
 
-  // Load Users on Startup for Login
   useEffect(() => {
     const fetchSystemUsers = async () => {
         setIsLoading(true);
@@ -45,7 +44,6 @@ const App: React.FC = () => {
     fetchSystemUsers();
   }, []);
 
-  // Initial Data Load when User Logs In
   useEffect(() => {
     if (user) {
         loadData();
@@ -55,11 +53,10 @@ const App: React.FC = () => {
   const loadData = async () => {
     setIsSyncing(true);
     try {
-        // Load transactions and categories in parallel
         const [txData, catData, uData] = await Promise.all([
             api.fetchTransactions(),
             api.fetchCategories(),
-            api.fetchUsers() // Refresh user list
+            api.fetchUsers()
         ]);
         setTransactions(txData);
         setCategories(catData);
@@ -81,24 +78,16 @@ const App: React.FC = () => {
   const handleLogout = () => {
     setUser(null);
     setTransactions([]);
+    setIsMobileMenuOpen(false);
   };
 
-  // Helper to add category explicitly (for the + button)
   const handleAddCategory = async (categoryName: string) => {
     if (!categoryName) return;
-    
-    // Check if duplicate locally first to avoid UI jitter
     if (categories.some(c => c.toLowerCase() === categoryName.toLowerCase())) {
         return;
     }
-
-    // Optimistic UI update
     setCategories(prev => [...prev, categoryName]);
-    
-    // Persist to local just in case
     saveLocalCategory(categoryName);
-
-    // Save to Cloud
     try {
          await api.addCategory(categoryName);
     } catch(err) {
@@ -113,39 +102,30 @@ const App: React.FC = () => {
         id: Date.now().toString(),
         timestamp: Date.now()
     };
-
-    // Optimistic UI update
     const updatedLocal = [tx, ...transactions];
     setTransactions(updatedLocal);
-
-    // Save to Cloud in background
     try {
         await api.addTransaction(tx);
     } catch (error) {
         console.error("Failed to save to cloud", error);
         alert("Không lưu được lên Cloud.");
-        saveLocalTransaction(tx); // Fallback
+        saveLocalTransaction(tx); 
     }
   };
 
   const handleDeleteTransaction = async (id: string) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa không?')) return;
-
-    // Optimistic UI update
     const updated = transactions.filter(t => t.id !== id);
     setTransactions(updated);
-
     try {
         await api.deleteTransaction(id);
     } catch (error) {
         console.error("Failed to delete from cloud", error);
-        deleteLocalTransaction(id); // Fallback
+        deleteLocalTransaction(id); 
     }
   };
 
-  // User Management Handlers
   const handleAddUser = async (u: User) => {
-      // Optimistic
       setUserList(prev => [...prev, u]);
       try {
           await api.addUser(u);
@@ -163,15 +143,12 @@ const App: React.FC = () => {
       }
   };
 
-  // Close Ledger Handler
   const handleCloseLedger = async (batchName: string) => {
       try {
           const result = await api.closeLedger(batchName);
           if (result.status === 'success') {
               alert(result.message || 'Kết sổ thành công! Dữ liệu đã được lưu trữ.');
-              // Clear current view
               setTransactions([]);
-              // Optionally reload from cloud to ensure sync state
               loadData();
           } else {
               alert('Lỗi: ' + result.message);
@@ -180,6 +157,11 @@ const App: React.FC = () => {
           console.error(error);
           alert('Lỗi kết nối khi kết sổ.');
       }
+  };
+
+  const handleSetView = (view: string) => {
+      setCurrentView(view);
+      setIsMobileMenuOpen(false); // Close menu on mobile when clicking items
   };
 
   if (isLoading && !user) {
@@ -196,26 +178,39 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50 flex-col md:flex-row">
+      {/* Mobile Header */}
+      <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-40 shadow-md">
+          <div className="flex items-center gap-2">
+             <span className="text-xl font-bold">🐔 Gà Pro</span>
+          </div>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+              <Menu size={24} />
+          </button>
+      </div>
+
       <Sidebar 
         currentUser={user} 
         currentView={currentView} 
-        setView={setCurrentView} 
+        setView={handleSetView} 
         onLogout={handleLogout}
         onCloseLedger={handleCloseLedger}
+        isMobileOpen={isMobileMenuOpen}
+        setIsMobileOpen={setIsMobileMenuOpen}
       />
 
-      <main className="flex-1 ml-64 p-8">
+      <main className={`flex-1 p-4 md:p-8 transition-all ${isMobileMenuOpen ? 'opacity-50 pointer-events-none md:opacity-100 md:pointer-events-auto' : ''} md:ml-64`}>
         <div className="flex justify-end mb-4">
             {isSyncing ? (
-                <div className="flex items-center gap-2 text-slate-500 text-sm">
+                <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
                     <Loader2 size={16} className="animate-spin" />
                     Đang đồng bộ...
                 </div>
             ) : (
-                <div className="flex items-center gap-2 text-sm px-3 py-1 rounded-full bg-blue-100 text-blue-700">
+                <div className="flex items-center gap-2 text-xs md:text-sm px-3 py-1 rounded-full bg-blue-100 text-blue-700">
                     <Cloud size={14} />
-                    Connected to Google Sheets
+                    <span className="hidden md:inline">Connected to Google Sheets</span>
+                    <span className="md:hidden">Online</span>
                 </div>
             )}
         </div>
@@ -225,14 +220,14 @@ const App: React.FC = () => {
         {currentView === 'transactions' && (
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-slate-800">Quản lý Thu / Chi</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-slate-800">Quản lý Thu / Chi</h2>
                 </div>
 
                 {/* Tabs for Separation */}
-                <div className="flex gap-4 p-1 bg-slate-200 rounded-lg w-fit">
+                <div className="flex p-1 bg-slate-200 rounded-lg w-full md:w-fit overflow-x-auto">
                     <button 
                         onClick={() => setActiveTab(TransactionType.EXPENSE)}
-                        className={`flex items-center gap-2 px-6 py-2 rounded-md font-medium transition-all ${
+                        className={`flex-1 md:flex-none flex justify-center items-center gap-2 px-4 py-2 rounded-md font-medium transition-all text-sm md:text-base whitespace-nowrap ${
                             activeTab === TransactionType.EXPENSE 
                             ? 'bg-rose-600 text-white shadow-md' 
                             : 'text-slate-600 hover:bg-slate-300'
@@ -243,7 +238,7 @@ const App: React.FC = () => {
                     </button>
                     <button 
                         onClick={() => setActiveTab(TransactionType.INCOME)}
-                        className={`flex items-center gap-2 px-6 py-2 rounded-md font-medium transition-all ${
+                        className={`flex-1 md:flex-none flex justify-center items-center gap-2 px-4 py-2 rounded-md font-medium transition-all text-sm md:text-base whitespace-nowrap ${
                             activeTab === TransactionType.INCOME 
                             ? 'bg-emerald-600 text-white shadow-md' 
                             : 'text-slate-600 hover:bg-slate-300'
@@ -257,7 +252,7 @@ const App: React.FC = () => {
                 {/* Content filtered by Tab */}
                 <div>
                      <TransactionForm 
-                        key={activeTab} // Force re-render when switching tabs to clear form
+                        key={activeTab} 
                         fixedType={activeTab}
                         onAdd={handleAddTransaction} 
                         onAddCategory={handleAddCategory}

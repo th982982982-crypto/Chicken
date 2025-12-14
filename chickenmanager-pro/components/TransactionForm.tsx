@@ -3,7 +3,7 @@ import { Transaction, TransactionType } from '../types';
 import { Plus, X, Save } from 'lucide-react';
 
 interface TransactionFormProps {
-  fixedType: TransactionType; // New prop to enforce type
+  fixedType: TransactionType; 
   onAdd: (t: Omit<Transaction, 'id' | 'timestamp'>) => void;
   onAddCategory: (category: string) => Promise<void>;
   availableCategories: string[];
@@ -76,7 +76,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ fixedType, onAdd, onA
     return (
         <button 
             onClick={() => setIsOpen(true)}
-            className={`flex items-center gap-2 text-white px-4 py-2 rounded-lg transition-colors shadow-sm bg-${themeColor}-600 hover:bg-${themeColor}-700`}
+            className={`w-full md:w-auto flex items-center justify-center gap-2 text-white px-4 py-2 rounded-lg transition-colors shadow-sm bg-${themeColor}-600 hover:bg-${themeColor}-700`}
         >
             <Plus size={20} />
             {`Thêm ${labelText} Mới`}
@@ -85,7 +85,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ fixedType, onAdd, onA
   }
 
   return (
-    <div className={`bg-white p-6 rounded-xl shadow-lg border-l-4 border-${themeColor}-500 mb-6 animate-fade-in`}>
+    <div className={`bg-white p-4 md:p-6 rounded-xl shadow-lg border-l-4 border-${themeColor}-500 mb-6 animate-fade-in`}>
         <div className="flex justify-between items-center mb-4">
             <h3 className={`text-lg font-bold text-${themeColor}-700`}>{`Ghi nhận ${labelText}`}</h3>
             <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-600">Đóng</button>
@@ -99,7 +99,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ fixedType, onAdd, onA
                     required
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className={`w-full border-slate-300 rounded-md shadow-sm focus:border-${themeColor}-500 focus:ring-${themeColor}-500 p-2 border`}
+                    className={`w-full border-slate-300 rounded-md shadow-sm focus:border-${themeColor}-500 focus:ring-${themeColor}-500 p-3 md:p-2 border`}
                 />
             </div>
 
@@ -110,7 +110,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ fixedType, onAdd, onA
                         <select 
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}
-                            className={`w-full border-slate-300 rounded-md shadow-sm focus:border-${themeColor}-500 focus:ring-${themeColor}-500 p-2 border`}
+                            className={`w-full border-slate-300 rounded-md shadow-sm focus:border-${themeColor}-500 focus:ring-${themeColor}-500 p-3 md:p-2 border`}
                         >
                             <option value="">-- Chọn danh mục --</option>
                             {availableCategories.map(cat => (
@@ -120,7 +120,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ fixedType, onAdd, onA
                         <button
                             type="button"
                             onClick={() => setIsAddingCategory(true)}
-                            className={`bg-${themeColor}-100 text-${themeColor}-700 p-2 rounded-md hover:bg-${themeColor}-200 transition-colors`}
+                            className={`bg-${themeColor}-100 text-${themeColor}-700 p-2 rounded-md hover:bg-${themeColor}-200 transition-colors flex-shrink-0 w-12 flex items-center justify-center`}
                             title="Thêm danh mục mới"
                         >
                             <Plus size={20} />
@@ -130,7 +130,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ fixedType, onAdd, onA
                     <div className="flex gap-2">
                          <input 
                             type="text"
-                            placeholder="Nhập tên danh mục..."
+                            placeholder="Nhập tên..."
                             value={newCategoryName}
                             onChange={(e) => setNewCategoryName(e.target.value)}
                             className={`w-full border-slate-300 rounded-md shadow-sm focus:border-${themeColor}-500 focus:ring-${themeColor}-500 p-2 border`}
@@ -168,7 +168,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ fixedType, onAdd, onA
                         placeholder="VD: 10"
                         value={quantity}
                         onChange={(e) => setQuantity(e.target.value)}
-                        className={`w-full border-slate-300 rounded-md shadow-sm focus:border-${themeColor}-500 focus:ring-${themeColor}-500 p-2 border`}
+                        className={`w-full border-slate-300 rounded-md shadow-sm focus:border-${themeColor}-500 focus:ring-${themeColor}-500 p-3 md:p-2 border`}
                     />
                 </div>
                 <div>
@@ -180,7 +180,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ fixedType, onAdd, onA
                         placeholder="VD: 50000"
                         value={unitPrice}
                         onChange={(e) => setUnitPrice(e.target.value)}
-                        className={`w-full border-slate-300 rounded-md shadow-sm focus:border-${themeColor}-500 focus:ring-${themeColor}-500 p-2 border`}
+                        className={`w-full border-slate-300 rounded-md shadow-sm focus:border-${themeColor}-500 focus:ring-${themeColor}-500 p-3 md:p-2 border`}
                     />
                 </div>
             </div>
@@ -200,14 +200,14 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ fixedType, onAdd, onA
                     placeholder="VD: Chi tiết giao dịch..."
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    className={`w-full border-slate-300 rounded-md shadow-sm focus:border-${themeColor}-500 focus:ring-${themeColor}-500 p-2 border`}
+                    className={`w-full border-slate-300 rounded-md shadow-sm focus:border-${themeColor}-500 focus:ring-${themeColor}-500 p-3 md:p-2 border`}
                 />
             </div>
 
             <div className="md:col-span-2 flex justify-end">
                 <button 
                     type="submit"
-                    className={`bg-${themeColor}-600 text-white px-6 py-2 rounded-lg hover:bg-${themeColor}-700 transition-colors font-medium shadow-md`}
+                    className={`w-full md:w-auto bg-${themeColor}-600 text-white px-6 py-3 md:py-2 rounded-lg hover:bg-${themeColor}-700 transition-colors font-medium shadow-md`}
                 >
                     Lưu {labelText}
                 </button>
