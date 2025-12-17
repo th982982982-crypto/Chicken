@@ -13,12 +13,17 @@ import {
     deleteLocalTransaction, 
     getLocalCategories,
     saveLocalCategory,
-    api
+    api,
+    getUserSession,
+    saveUserSession,
+    clearUserSession
 } from './services/storageService';
 import { Loader2, Cloud, ArrowDownCircle, ArrowUpCircle, Menu } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
+  // Initialize user from local storage session for auto-login
+  const [user, setUser] = useState<User | null>(() => getUserSession());
+  
   const [currentView, setCurrentView] = useState('dashboard');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -30,8 +35,10 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TransactionType>(TransactionType.EXPENSE);
 
   useEffect(() => {
+    // Only fetch system users if needed or in background
     const fetchSystemUsers = async () => {
-        setIsLoading(true);
+        // If we are already logged in, we might want to refresh user list silently
+        if (!user) setIsLoading(true);
         try {
             const users = await api.fetchUsers();
             setUserList(users);
@@ -43,7 +50,7 @@ const App: React.FC = () => {
         }
     };
     fetchSystemUsers();
-  }, []);
+  }, [user]); // Re-run if user status changes, essentially helps on logout/login transitions
 
   useEffect(() => {
     if (user) {
@@ -74,12 +81,14 @@ const App: React.FC = () => {
 
   const handleLogin = (u: User) => {
     setUser(u);
+    saveUserSession(u); // Auto-save session
   };
 
   const handleLogout = () => {
     setUser(null);
     setTransactions([]);
     setIsMobileMenuOpen(false);
+    clearUserSession(); // Clear session
   };
 
   const handleAddCategory = async (categoryName: string) => {

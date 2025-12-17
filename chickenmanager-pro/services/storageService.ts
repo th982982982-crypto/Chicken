@@ -3,6 +3,7 @@ import { Transaction, DEFAULT_CATEGORIES, User, AppConfig } from '../types';
 const STORAGE_KEY = 'chicken_farm_data';
 const CATEGORY_KEY = 'chicken_farm_categories';
 const CONFIG_KEY = 'chicken_farm_config';
+const USER_SESSION_KEY = 'chicken_farm_user_session';
 
 // Hardcoded Web App URL provided by user
 const DEFAULT_GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwLewoR1c0F9jlt8dvf_URVfRKDUSszgdlzYoJ6l8nJkaRaU7WWC378nUAOZ0Ba9MWg/exec';
@@ -34,6 +35,26 @@ export const saveConfig = (config: AppConfig): void => {
 const getApiUrl = (): string => {
   const config = getConfig();
   return config.gasWebAppUrl || DEFAULT_GAS_WEB_APP_URL;
+};
+
+// --- Session Methods ---
+
+export const saveUserSession = (user: User) => {
+  localStorage.setItem(USER_SESSION_KEY, JSON.stringify(user));
+};
+
+export const getUserSession = (): User | null => {
+  const stored = localStorage.getItem(USER_SESSION_KEY);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return null;
+  }
+};
+
+export const clearUserSession = () => {
+  localStorage.removeItem(USER_SESSION_KEY);
 };
 
 // --- Local Storage Methods ---
