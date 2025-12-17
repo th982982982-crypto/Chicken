@@ -86,9 +86,14 @@ export const saveLocalCategory = (newCategory: string): string[] => {
 // --- Google Apps Script API Methods ---
 
 export const api = {
-  fetchTransactions: async (): Promise<Transaction[]> => {
+  fetchTransactions: async (sheetName?: string): Promise<Transaction[]> => {
     try {
-      const response = await fetch(`${getApiUrl()}?type=transactions`);
+      let url = `${getApiUrl()}?type=transactions`;
+      if (sheetName) {
+        // CRITICAL FIX: Encode the sheet name to handle spaces, +, /, () correctly
+        url += `&sheetName=${encodeURIComponent(sheetName)}`;
+      }
+      const response = await fetch(url);
       const data = await response.json();
       return Array.isArray(data) ? data : [];
     } catch (error) {
@@ -132,6 +137,17 @@ export const api = {
       // Critical Fallback: Return default admin so user can at least login and check settings
       return [{ username: 'admin', password: '123', role: 'admin' }];
     }
+  },
+
+  fetchArchivedBatches: async (): Promise<string[]> => {
+      try {
+          const response = await fetch(`${getApiUrl()}?type=archives`);
+          const data = await response.json();
+          return Array.isArray(data) ? data : [];
+      } catch (error) {
+          console.error("Error fetching archives:", error);
+          return [];
+      }
   },
 
   addTransaction: async (transaction: Transaction): Promise<void> => {
@@ -183,25 +199,22 @@ export const api = {
 export const getGASCodeTemplate = () => {
   return `
 // ==================================================
-// APP SCRIPT CHO CHICKEN MANAGER PRO (FINAL v2)
+// APP SCRIPT CHO CHICKEN MANAGER PRO (FIXED HISTORY LIST)
 // ==================================================
 
 function doGet(e) {
   const type = e.parameter.type || 'transactions';
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   
   return handleResponse(() => {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
     
     // --- LẤY DANH SÁCH DANH MỤC ---
     if (type === 'categories') {
       const sheet = getOrCreateSheet(ss, 'Categories');
       const lastRow = sheet.getLastRow();
-      if (lastRow <= 1) {
-         return []; 
-      }
+      if (lastRow <= 1) return []; 
       const data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-      const categories = data.flat().filter(function(cell) { return cell !== ""; });
-      return categories;
+      return data.flat().filter(function(cell) { return cell !== ""; }).map(String);
     }
     
     // --- LẤY DANH SÁCH USER ---
@@ -216,22 +229,48 @@ function doGet(e) {
       })).filter(u => u.username);
     }
 
-    // --- LẤY GIAO DỊCH (MẶC ĐỊNH) ---
-    const sheet = getOrCreateSheet(ss, 'Transactions');
-    const data = sheet.getDataRange().getValues();
+    // --- LẤY DANH SÁCH CÁC ĐỢT ĐÃ KẾT SỔ (ARCHIVES) ---
+    // SỬA LỖI: Đảm bảo trả về mảng chuỗi
+    if (type === 'archives') {
+      const sheets = ss.getSheets();
+      const archives = [];
+      for (var i = 0; i < sheets.length; i++) {
+        const name = String(sheets[i].getName()); // Ép kiểu String
+        if (name.indexOf('Archive_') === 0) {
+           archives.push(name.substring(8)); // Chỉ lấy phần tên sau 'Archive_'
+        }
+      }
+      return archives; 
+    }
+
+    // --- LẤY GIAO DỊCH ---
+    let sheetName = 'Transactions';
+    if (e.parameter.sheetName && e.parameter.sheetName.indexOf('Archive_') === 0) {
+       sheetName = e.parameter.sheetName;
+    }
     
+    let sheet;
+    if (sheetName === 'Transactions') {
+      sheet = getOrCreateSheet(ss, 'Transactions');
+    } else {
+      sheet = ss.getSheetByName(sheetName);
+    }
+
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
     if (data.length <= 1) return [];
 
     const transactions = data.slice(1).map(row => ({
       id: String(row[0]),
       date: formatDate(row[1]), 
-      type: row[2],
-      category: row[3],
-      amount: Number(row[4]),
-      note: row[5],
-      timestamp: Number(row[6]),
-      quantity: Number(row[7] || 1),    
-      unitPrice: Number(row[8] || row[4]) 
+      type: String(row[2]),
+      category: String(row[3]),
+      amount: Number(row[4] || 0),
+      note: String(row[5] || ""),
+      timestamp: Number(row[6] || 0),
+      quantity: Number(row[7] || 0),    
+      unitPrice: Number(row[8] || 0) 
     })).filter(t => t.id && t.amount);
 
     return transactions.sort((a, b) => b.timestamp - a.timestamp);
@@ -244,30 +283,27 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents);
     const action = body.action || 'create';
 
-    // --- TẠO GIAO DỊCH MỚI ---
     if (action === 'create') {
       const sheet = getOrCreateSheet(ss, 'Transactions');
       sheet.appendRow([
-        body.data.id,
-        body.data.date,
-        body.data.type,
-        body.data.category,
-        body.data.amount,
-        body.data.note,
-        body.data.timestamp,
-        body.data.quantity, 
-        body.data.unitPrice 
+        String(body.data.id),
+        String(body.data.date),
+        String(body.data.type),
+        String(body.data.category),
+        Number(body.data.amount),
+        String(body.data.note),
+        Number(body.data.timestamp),
+        Number(body.data.quantity), 
+        Number(body.data.unitPrice) 
       ]);
       return { status: 'success' };
     }
     
-    // --- KẾT SỔ (CLOSE LEDGER) ---
     if (action === 'close_ledger') {
       const batchName = body.batchName || ('Batch_' + formatDate(new Date()));
       const sourceSheet = getOrCreateSheet(ss, 'Transactions');
       const targetSheetName = 'Archive_' + batchName;
       
-      // Kiểm tra xem tên đã tồn tại chưa
       if (ss.getSheetByName(targetSheetName)) {
         return { status: 'error', message: 'Tên sổ này đã tồn tại, vui lòng chọn tên khác.' };
       }
@@ -277,29 +313,19 @@ function doPost(e) {
          return { status: 'error', message: 'Không có dữ liệu để kết sổ.' };
       }
 
-      // Tạo sheet lưu trữ mới
       const targetSheet = ss.insertSheet(targetSheetName);
-      
-      // Copy toàn bộ dữ liệu sang sheet mới (bao gồm header)
       const range = sourceSheet.getDataRange();
       range.copyTo(targetSheet.getRange(1, 1));
-      
-      // Xóa dữ liệu ở sheet cũ (chừa lại dòng header)
       sourceSheet.deleteRows(2, lastRow - 1);
-      
       return { status: 'success', message: 'Đã kết sổ và lưu trữ thành công.' };
     }
 
-    // --- TẠO DANH MỤC MỚI ---
     if (action === 'create_category') {
       const sheet = getOrCreateSheet(ss, 'Categories');
       const newCat = String(body.category).trim();
-      
       if (!newCat) return { status: 'error', message: 'Empty category' };
-
       const data = sheet.getDataRange().getValues();
       const exists = data.some(row => String(row[0]).toLowerCase() === newCat.toLowerCase());
-      
       if (!exists) {
         sheet.appendRow([newCat, new Date()]);
         return { status: 'success', message: 'Category added' };
@@ -307,26 +333,22 @@ function doPost(e) {
       return { status: 'success', message: 'Category already exists' };
     }
 
-    // --- TẠO USER MỚI ---
     if (action === 'create_user') {
       const sheet = getOrCreateSheet(ss, 'Users');
       const u = body.user;
       const data = sheet.getDataRange().getValues();
       const exists = data.some(row => String(row[0]) === u.username);
       if (exists) return { status: 'error', message: 'User exists' };
-      
       sheet.appendRow([u.username, u.password, u.role, new Date()]);
       return { status: 'success' };
     }
     
-    // --- XÓA GIAO DỊCH ---
     if (action === 'delete') {
       const sheet = getOrCreateSheet(ss, 'Transactions');
       deleteRowByCol(sheet, 0, String(body.id));
       return { status: 'success' };
     }
 
-    // --- XÓA USER ---
     if (action === 'delete_user') {
       const sheet = getOrCreateSheet(ss, 'Users');
       deleteRowByCol(sheet, 0, String(body.username));
@@ -375,17 +397,21 @@ function handleResponse(callback) {
 }
 
 function formatDate(date) {
-  if (!date) return '';
-  if (typeof date.getMonth === 'function') {
-     var d = new Date(date),
-        month = '' + (d.getMonth() + 1),
-        day = '' + d.getDate(),
-        year = d.getFullYear();
-    if (month.length < 2) month = '0' + month;
-    if (day.length < 2) day = '0' + day;
-    return [year, month, day].join('-');
+  try {
+    if (!date) return '';
+    if (typeof date.getMonth === 'function') {
+       var d = new Date(date),
+          month = '' + (d.getMonth() + 1),
+          day = '' + d.getDate(),
+          year = d.getFullYear();
+      if (month.length < 2) month = '0' + month;
+      if (day.length < 2) day = '0' + day;
+      return [year, month, day].join('-');
+    }
+    return String(date);
+  } catch (e) {
+    return "";
   }
-  return String(date);
 }
   `;
 };

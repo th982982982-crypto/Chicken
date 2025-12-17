@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard';
 import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
 import UserManagement from './components/UserManagement';
+import HistoryViewer from './components/HistoryViewer';
 import { User, Transaction, TransactionType } from './types';
 import { 
     getLocalTransactions, 
@@ -270,6 +271,10 @@ const App: React.FC = () => {
                     </div>
                 </div>
             </div>
+        )}
+
+        {currentView === 'history' && (
+            <HistoryViewer />
         )}
 
         {currentView === 'users' && user.role === 'admin' && (

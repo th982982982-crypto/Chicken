@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Receipt, LogOut, Users, Archive, Save, X } from 'lucide-react';
+import { LayoutDashboard, Receipt, LogOut, Users, Archive, Save, X, History } from 'lucide-react';
 import { User } from '../types';
 
 interface SidebarProps {
@@ -28,6 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const menuItems = [
     { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard },
     { id: 'transactions', label: 'Thu / Chi', icon: Receipt },
+    { id: 'history', label: 'Lịch sử', icon: History },
   ];
 
   if (currentUser.role === 'admin') {

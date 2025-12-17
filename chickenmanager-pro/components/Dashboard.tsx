@@ -33,7 +33,11 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
     const grouped: Record<string, { name: string; income: number; expense: number }> = {};
     
     transactions.forEach(t => {
+        // Ensure date is valid
+        if (!t.date) return;
         const date = new Date(t.date);
+        if (isNaN(date.getTime())) return;
+
         const key = `${date.getMonth() + 1}/${date.getFullYear()}`;
         if (!grouped[key]) {
             grouped[key] = { name: key, income: 0, expense: 0 };
@@ -91,17 +95,24 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
       {/* Chart */}
       <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100">
         <h3 className="text-lg font-semibold mb-6">Biểu đồ dòng tiền</h3>
-        <div className="h-64 md:h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" tick={{fontSize: 12}} />
-                    <YAxis tickFormatter={(val) => `${val / 1000000}M`} tick={{fontSize: 12}} />
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Bar dataKey="income" name="Thu" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="expense" name="Chi" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                </BarChart>
-            </ResponsiveContainer>
+        {/* Added min-h-[300px] to ensure Recharts has space to render */}
+        <div className="h-64 md:h-80 w-full min-h-[300px]">
+            {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="name" tick={{fontSize: 12}} />
+                        <YAxis tickFormatter={(val) => `${val / 1000000}M`} tick={{fontSize: 12}} />
+                        <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                        <Bar dataKey="income" name="Thu" fill="#10b981" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="expense" name="Chi" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                </ResponsiveContainer>
+            ) : (
+                <div className="flex items-center justify-center h-full text-slate-400">
+                    Chưa có dữ liệu biểu đồ
+                </div>
+            )}
         </div>
       </div>
     </div>
